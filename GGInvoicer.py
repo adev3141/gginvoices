@@ -3,6 +3,7 @@ from fpdf import FPDF
 import smtplib
 from email.mime.multipart import MIMEMultipart
 from email.mime.base import MIMEBase
+from email.mime.text import MIMEText
 from email import encoders
 import os
 
@@ -30,7 +31,11 @@ def generate_pdf(invoice_data, filename):
     pdf.chapter_body(f"{invoice_data['client_name']}\n{invoice_data['client_company']}\n{invoice_data['client_address']}\n{invoice_data['client_phone']}\n{invoice_data['client_email']}")
 
     for item in invoice_data['items']:
-        pdf.chapter_body(f"{item['description']} - {item['date']} - {item['hours']}h @ ${item['rate']}/h: ${item['subtotal']}")
+        item_text = (
+            f"{item['description']} - {item['date']} - {item['hours']}h @ "
+            f"${item['rate']}/h: ${item['subtotal']}"
+        )
+        pdf.chapter_body(item_text)
     
     pdf.chapter_body(f"Total: ${invoice_data['total']}")
     pdf.chapter_body("Payment Details:")
