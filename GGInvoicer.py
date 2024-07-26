@@ -1,39 +1,42 @@
 import streamlit as st
-from reportlab.lib.pagesizes import letter
-from reportlab.pdfgen import canvas
+from fpdf import FPDF
 import smtplib
 from email.mime.multipart import MIMEMultipart
 from email.mime.base import MIMEBase
 from email import encoders
 import os
 
-# Function to generate PDF
+# Function to generate PDF using fpdf2
+class PDF(FPDF):
+    def header(self):
+        self.set_font('Arial', 'B', 12)
+        self.cell(0, 10, 'INVOICE', 0, 1, 'C')
+
+    def chapter_title(self, title):
+        self.set_font('Arial', 'B', 12)
+        self.cell(0, 10, title, 0, 1, 'L')
+
+    def chapter_body(self, body):
+        self.set_font('Arial', '', 12)
+        self.multi_cell(0, 10, body)
+
 def generate_pdf(invoice_data, filename):
-    c = canvas.Canvas(filename, pagesize=letter)
-    width, height = letter
-    
-    c.drawString(30, height - 30, "INVOICE")
-    c.drawString(30, height - 60, f"Invoice Number: {invoice_data['invoice_number']}")
-    c.drawString(30, height - 90, f"Invoice Date: {invoice_data['invoice_date']}")
-    c.drawString(30, height - 120, f"Due Date: {invoice_data['due_date']}")
-    
-    c.drawString(30, height - 150, "Bill To:")
-    c.drawString(30, height - 180, f"{invoice_data['client_name']}")
-    c.drawString(30, height - 210, f"{invoice_data['client_company']}")
-    c.drawString(30, height - 240, f"{invoice_data['client_address']}")
-    c.drawString(30, height - 270, f"{invoice_data['client_phone']}")
-    c.drawString(30, height - 300, f"{invoice_data['client_email']}")
+    pdf = PDF()
+    pdf.add_page()
+    pdf.chapter_title(f"Invoice Number: {invoice_data['invoice_number']}")
+    pdf.chapter_title(f"Invoice Date: {invoice_data['invoice_date']}")
+    pdf.chapter_title(f"Due Date: {invoice_data['due_date']}")
+    pdf.chapter_title("Bill To:")
+    pdf.chapter_body(f"{invoice_data['client_name']}\n{invoice_data['client_company']}\n{invoice_data['client_address']}\n{invoice_data['client_phone']}\n{invoice_data['client_email']}")
 
-    y = height - 330
     for item in invoice_data['items']:
-        c.drawString(30, y, f"{item['description']} - {item['date']} - {item['hours']}h @ ${item['rate']}/h: ${item['subtotal']}")
-        y -= 30
+        pdf.chapter_body(f"{item['description']} - {item['date']} - {item['hours']}h @ ${item['rate']}/h: ${item['subtotal']}")
     
-    c.drawString(30, y - 30, f"Total: ${invoice_data['total']}")
-    c.drawString(30, y - 60, "Payment Details:")
-    c.drawString(30, y - 90, invoice_data['payment_details'])
-
-    c.save()
+    pdf.chapter_body(f"Total: ${invoice_data['total']}")
+    pdf.chapter_body("Payment Details:")
+    pdf.chapter_body(invoice_data['payment_details'])
+    
+    pdf.output(filename)
 
 # Function to send email
 def send_email(receiver_email, subject, body, filename):
